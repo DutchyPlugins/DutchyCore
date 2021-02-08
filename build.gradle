@@ -1,0 +1,67 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
+plugins {
+    id 'java'
+    id 'eclipse'
+    id 'maven-publish'      
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+    }
+}
+
+version = '0.0.15'
+group = 'nl.thedutchmc'
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+allprojects {
+    repositories {
+    	mavenCentral()
+        maven { url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
+   	 	maven{ url "https://oss.sonatype.org/content/repositories/snapshots" }
+    }
+
+    sourceCompatibility = 1.11
+    targetCompatibility = 1.11
+
+    processResources {
+        from(sourceSets.main.resources.srcDirs) {
+            filter ReplaceTokens, tokens: [version: version]
+        }
+    }
+}
+
+dependencies {
+    compileOnly 'org.spigotmc:spigot-api:1.16.5-R0.1-SNAPSHOT'
+}
+
+publishing {
+	publications {
+		mavenJava(MavenPublication) {
+			artifactId = 'dutchycore'
+			from components.java
+			
+			pom {
+				name = 'DutchyCore'
+				description = 'Core plugin for all Dutchy plugin modules'
+				url = 'https://thedutchmc.nl'
+				
+				developers {
+					developer {
+						id = 'thedutchmc'
+						name = 'Tobias de Bruijn'
+						email = 't.debruijn@thedutchmc.nl'
+					}	
+				}
+			}	
+		}
+	}
+}
