@@ -32,6 +32,19 @@ public abstract class PluginModule {
 	public abstract void enable(DutchyCore plugin);
 	
 	/**
+	 * Check if a module is registerd
+	 * @param moduleName The name of the module
+	 * @return Returns true if the module is registered
+	 */
+	public boolean isModuleRegistered(String moduleName) {
+		for(Module m : DutchyCore.getModuleLoader().loadedModules.values()) {
+			if(m.getName().equalsIgnoreCase(moduleName)) return true;
+		}
+		
+		return false;
+	}
+	
+	/**
 	 * Register a command
 	 * @param commandName The name of the command
 	 * @param moduleCommand The class implementing ModuleCommand, which will execute the command
