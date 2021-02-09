@@ -58,6 +58,10 @@ public class ModuleLoader {
 			//Load and enable the module
 			loadModule(new File(modulePath), plugin);
 		}
+		
+		for(Module m : this.loadedModules.values()) {
+			m.getModule().postEnable();
+		}
 	}
 	
 	/**

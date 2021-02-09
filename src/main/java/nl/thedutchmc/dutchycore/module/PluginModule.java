@@ -32,6 +32,13 @@ public abstract class PluginModule {
 	public abstract void enable(DutchyCore plugin);
 	
 	/**
+	 * Called after all modules have been enabled
+	 */
+	public void postEnable() {
+		
+	}
+	
+	/**
 	 * Check if a module is registerd
 	 * @param moduleName The name of the module
 	 * @return Returns true if the module is registered
@@ -106,6 +113,7 @@ public abstract class PluginModule {
 	 * @param moduleName The name of the module to check for
 	 * @return Returns true if the module is installed, false if it is not
 	 */
+	@Deprecated
 	public boolean isModuleInstalled(String moduleName) {
 		for(Module m : DutchyCore.getModuleLoader().loadedModules.values()) {
 			if(m.getName().equals(moduleName)) return true;
