@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -24,11 +23,17 @@ import org.yaml.snakeyaml.Yaml;
 
 import nl.thedutchmc.dutchycore.DutchyCore;
 import nl.thedutchmc.dutchycore.Pair;
+import nl.thedutchmc.dutchycore.annotations.Nullable;
+import nl.thedutchmc.dutchycore.module.events.ModuleEvent;
+import nl.thedutchmc.dutchycore.module.events.ModuleEventListener;
 import nl.thedutchmc.dutchycore.module.exceptions.InvalidModuleException;
 
 public class ModuleLoader {
 	
-	HashMap<PluginModule, Module> loadedModules = new HashMap<>();
+	protected HashMap<PluginModule, Module> loadedModules = new HashMap<>();
+	protected HashMap<Class<? extends ModuleEvent>, List<ModuleEventListener>> moduleEventListeners = new HashMap<>();
+	
+	private ModuleClassLoader moduleClassLoader;
 	
 	/**
 	 * Load all modules<br>
@@ -48,19 +53,48 @@ public class ModuleLoader {
 		DutchyCore.logInfo("Discovering modules...");
 		List<String> modulePaths = discoverModules(moduleFolder);
 		DutchyCore.logInfo(String.format("Discovered %d module(s)!", modulePaths.size()));
-		
-		//Loop over the discovered modules and enable them one by one
-		for(String modulePath : modulePaths) {
-			//Split the path, as to get the name of the module for logging
-			String[] modulePathSplit = modulePath.split(Pattern.quote(File.separator));
-			DutchyCore.logInfo("Loading module: " + modulePathSplit[modulePathSplit.length -1]);
+	
+		//Iterate over all module paths
+		Module[] modulesToLoad = new Module[modulePaths.size()];
+		URL[] jarUrls = new URL[modulePaths.size()];
+		for(int i = 0; i < modulePaths.size(); i++) {
+			File moduleFile = new File(modulePaths.get(i));
 			
-			//Load and enable the module
-			loadModule(new File(modulePath), plugin);
+			//Load information from module.yml about the module
+			modulesToLoad[i] = loadModuleInformation(moduleFile);
+			
+			//Add the file as an URL to the array of URL's
+			try {
+				jarUrls[i] = moduleFile.toURI().toURL();
+			} catch(MalformedURLException e) {
+				e.printStackTrace();
+			}
 		}
 		
-		for(Module m : this.loadedModules.values()) {
-			m.getModule().postEnable();
+		//Create a ModuleClassLoader instance
+		this.moduleClassLoader = new ModuleClassLoader(jarUrls, this.getClass().getClassLoader());
+		
+		//Iterate over the modulesToLoad array and load each Module
+		for(Module module : modulesToLoad) {
+			DutchyCore.logInfo("Loading modules " + module.getName());
+			
+			//Load the main class and call the init method
+			PluginModule pluginModule = this.moduleClassLoader.loadMainClass(module.getMainClass());
+			pluginModule.init(plugin);
+
+			//Set the PluginModule on the Module
+			module.setModule(pluginModule);
+			
+			//Add the PluginModule and Module to the map of loaded modules
+			this.loadedModules.put(pluginModule, module);
+			
+			//Finally, call the enable method on the PluginModule to let the module do what it needs to for initalization
+			pluginModule.enable(plugin);
+		}
+		
+		//Iterate over the PluginModules in the map of loaded modules and call the postEnable method
+		for(PluginModule pm : this.loadedModules.keySet()) {
+			pm.postEnable();
 		}
 	}
 	
@@ -69,6 +103,7 @@ public class ModuleLoader {
 	 * @param pluginModule The PluginModule of the Module
 	 * @return Returns the Module associated with the provided PluginModule. Null if not found
 	 */
+	@Nullable
 	public Module getModule(PluginModule pluginModule) {
 		return this.loadedModules.get(pluginModule);
 	}
@@ -104,11 +139,11 @@ public class ModuleLoader {
 	 * @param file The jarfile to load
 	 * @param plugin Instance of DutchyCore
 	 */
-	private void loadModule(File file, DutchyCore plugin) {
+	private Module loadModuleInformation(File file) {
 		//Load the modules module.yml file
 		Pair<InputStream, JarFile> yamlLoaded = loadModuleYaml(file);
 		
-		//Get the mainClassName from the YAML file
+		//Get information from the YAML file
 		HashMap<String, Object> yamlValues = loadYaml(yamlLoaded.getA());
 		String mainClassName = (String) getYamlValue("main", yamlValues, file);
 		String version = (String) getYamlValue("version", yamlValues, file);
@@ -123,61 +158,44 @@ public class ModuleLoader {
 			e.printStackTrace();
 		}
 		
-		//Create a new ModuleClassLoader
-		ModuleClassLoader mcl = null;
-		try {
-			mcl = new ModuleClassLoader(new URL[] { file.toURI().toURL() }, this.getClass().getClassLoader(), mainClassName);
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		}
-		
-		//Get the PluginModule from the ModuleClassLoader
-		PluginModule module = mcl.getPluginModule();
-		module.init(plugin);
-		
-		Module m = new Module(module,
-				name,
+		//Create a new Module object and return it
+		return new Module(name,
 				mainClassName,
 				version,
 				author,
 				infoUrl);
-		
-		//Add the module to the list of loaded modules
-		this.loadedModules.put(module, m);
-		
-		//Call the enable method for the PluginModule
-		module.enable(plugin);
 	}
 	
-	private class ModuleClassLoader extends URLClassLoader {
-
-		private PluginModule pluginModule;
-		
-		public ModuleClassLoader(URL[] urls, ClassLoader parent, String mainClassName) {
+	public class ModuleClassLoader extends URLClassLoader {
+				
+		public ModuleClassLoader(URL[] urls, ClassLoader parent) {
 			super(urls, parent);
-			
+		}
+		
+		/**
+		 * Load the main class of a Module
+		 * @param className The name of the main class
+		 * @return Returns an instance of PluginModule, or null if an exception occured
+		 */
+		@Nullable
+		public PluginModule loadMainClass(String className) {
 			try {
 				//Get the Class for the provided mainClassName
-				Class<?> jarClazz = null;
-				try {
-					jarClazz = Class.forName(mainClassName, true, this);
-				} catch(ClassNotFoundException e) {
-					throw new InvalidModuleException(String.format("Main class %s not found in module!", mainClassName));
-				}
-				
+				Class<?> jarClazz = findClass(className);
+								
 				//the main class extends PluginModule, so get the main class as a subclass of PluginModule
 				Class<? extends PluginModule> moduleClazz = null;
 				try {
 					moduleClazz = jarClazz.asSubclass(PluginModule.class);
 				} catch(ClassCastException e) {
-					throw new InvalidModuleException(String.format("Provided main class %s does not extend PluginModuke", mainClassName));
+					throw new InvalidModuleException(String.format("Provided main class %s does not extend PluginModuke", className));
 				}
 				
 				//Get the constructor for the plugin class
 				Constructor<?> pluginClazzConstructor = moduleClazz.getConstructor();
 				
 				//Create an instance of the plugin class
-				this.pluginModule = (PluginModule) pluginClazzConstructor.newInstance();
+				return (PluginModule) pluginClazzConstructor.newInstance();
 				
 			} catch (IllegalAccessException e) {
 				e.printStackTrace();
@@ -191,11 +209,11 @@ public class ModuleLoader {
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {
 				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
 			}
-		}
-		
-		public PluginModule getPluginModule() {
-			return this.pluginModule;
+			
+			return null;
 		}
 	}
 	

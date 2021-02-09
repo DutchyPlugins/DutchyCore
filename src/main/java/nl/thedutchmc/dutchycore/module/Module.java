@@ -1,12 +1,13 @@
 package nl.thedutchmc.dutchycore.module;
 
+import nl.thedutchmc.dutchycore.annotations.Nullable;
+
 public class Module {
 
 	private PluginModule module;
 	private String name, mainClass, version, author, infoUrl;
 	
-	public Module(PluginModule module, String name, String mainClass, String version, String author, String infoUrl) {
-		this.module = module;
+	public Module(String name, String mainClass, String version, String author, String infoUrl ) {
 		this.name = name;
 		this.mainClass = mainClass;
 		this.version = version;
@@ -14,8 +15,21 @@ public class Module {
 		this.infoUrl = infoUrl;
 	}
 	
+	/**
+	 * Get the module instance
+	 * @return Returns the module instance, or null if it is not set (this happens only in early loading)
+	 */
+	@Nullable
 	public PluginModule getModule() {
 		return this.module;
+	}
+	
+	/**
+	 * Set the module instance
+	 * @param module The module instance to set
+	 */
+	protected void setModule(PluginModule module) {
+		this.module = module;
 	}
 	
 	/**

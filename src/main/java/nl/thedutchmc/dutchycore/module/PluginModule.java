@@ -1,6 +1,8 @@
 package nl.thedutchmc.dutchycore.module;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
@@ -10,6 +12,8 @@ import nl.thedutchmc.dutchycore.DutchyCore;
 import nl.thedutchmc.dutchycore.annotations.Nullable;
 import nl.thedutchmc.dutchycore.module.commands.ModuleCommand;
 import nl.thedutchmc.dutchycore.module.commands.ModuleTabCompleter;
+import nl.thedutchmc.dutchycore.module.events.ModuleEvent;
+import nl.thedutchmc.dutchycore.module.events.ModuleEventListener;
 import nl.thedutchmc.dutchycore.module.file.ModuleFileHandler;
 
 public abstract class PluginModule {
@@ -35,7 +39,53 @@ public abstract class PluginModule {
 	 * Called after all modules have been enabled
 	 */
 	public void postEnable() {
+		//Implementation by module is optional
+	}
+	
+
+	/**
+	 * Get a PluginModule
+	 * @param moduleName The name of the Module
+	 * @return Returns a PluginModule, if none was found null
+	 */
+	@Nullable
+	public PluginModule getPluginModule(String moduleName) {
+		for(Module m : DutchyCore.getModuleLoader().getAllModules()) {
+			if(m.getName().equalsIgnoreCase(moduleName)) return m.getModule();
+		}
 		
+		return null;
+	}
+	
+	/**
+	 * Throw (trigger) a ModuleEvent
+	 * @param moduleEvent An instance of the ModuleEvent to trigger
+	 */
+	public void throwModuleEvent(ModuleEvent moduleEvent) {
+		
+		//Get all listeners for this ModuleEvent
+		List<ModuleEventListener> listeners = DutchyCore.getModuleLoader().moduleEventListeners.get(moduleEvent.getClass());
+		
+		//Iterate over the event listeners and call the onEvent method
+		for(ModuleEventListener listener : listeners) {
+			listener.onEvent(moduleEvent);
+		}
+	}
+	
+	/**
+	 * Register a ModuleEventListener
+	 * @param eventListener An instance of a ModuleEventListener that wants to receive events
+	 * @param eventClass The ModuleEvent class that the ModuleEventListener wants to receive
+	 */
+	public void registerModuleEventListener(ModuleEventListener eventListener, Class<? extends ModuleEvent> eventClass) {
+		List<ModuleEventListener> listeners = DutchyCore.getModuleLoader().moduleEventListeners.get(eventClass);
+		if(listeners == null) {
+			listeners = new ArrayList<>();
+		}
+		
+		listeners.add(eventListener);
+		
+		DutchyCore.getModuleLoader().moduleEventListeners.put(eventClass, listeners);
 	}
 	
 	/**
@@ -127,7 +177,7 @@ public abstract class PluginModule {
 	 * @param log The object to log
 	 */
 	public void logInfo(Object log) {
-		DutchyCore.logInfo(String.format("[%s] %s", DutchyCore.getModuleLoader().getModule(this).getName(), log.toString()));
+		DutchyCore.logInfo(String.format("[%s] %s", DutchyCore.getModuleLoader().loadedModules.get(this).getName(), log.toString()));
 	}
 	
 	/**
@@ -135,7 +185,7 @@ public abstract class PluginModule {
 	 * @param log The object to log
 	 */
 	public void logWarn(Object log) {
-		DutchyCore.logWarn(String.format("[%s] %s", DutchyCore.getModuleLoader().getModule(this).getName(), log.toString()));
+		DutchyCore.logWarn(String.format("[%s] %s", DutchyCore.getModuleLoader().loadedModules.get(this).getName(), log.toString()));
 	}
 	
 	/**
