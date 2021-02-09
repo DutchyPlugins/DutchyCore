@@ -7,7 +7,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.permissions.PermissionDefault;
 import nl.thedutchmc.dutchycore.DutchyCore;
-import nl.thedutchmc.dutchycore.module.annotations.Nullable;
+import nl.thedutchmc.dutchycore.annotations.Nullable;
 import nl.thedutchmc.dutchycore.module.commands.ModuleCommand;
 import nl.thedutchmc.dutchycore.module.commands.ModuleTabCompleter;
 import nl.thedutchmc.dutchycore.module.file.ModuleFileHandler;

@@ -12,7 +12,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import nl.thedutchmc.dutchycore.DutchyCore;
 import nl.thedutchmc.dutchycore.config.Utf8YamlConfiguration;
 import nl.thedutchmc.dutchycore.module.Module;
-import nl.thedutchmc.dutchycore.module.annotations.Nullable;
+import nl.thedutchmc.dutchycore.annotations.Nullable;
 
 public class ModuleConfiguration {
 	private Module module;

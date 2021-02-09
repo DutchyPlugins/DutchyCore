@@ -17,7 +17,7 @@ import org.bukkit.plugin.SimplePluginManager;
 import nl.thedutchmc.dutchycore.DutchyCore;
 import nl.thedutchmc.dutchycore.commands.executors.ModulesCommandExecutor;
 import nl.thedutchmc.dutchycore.commands.tabcompleters.ModulesCommandTabCompleter;
-import nl.thedutchmc.dutchycore.module.annotations.Nullable;
+import nl.thedutchmc.dutchycore.annotations.Nullable;
 import nl.thedutchmc.dutchycore.module.commands.ModuleCommand;
 import nl.thedutchmc.dutchycore.module.commands.ModuleCommandExecutor;
 import nl.thedutchmc.dutchycore.module.commands.ModuleCommandTabCompleter;

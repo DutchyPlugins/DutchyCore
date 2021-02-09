@@ -1,4 +1,4 @@
-package nl.thedutchmc.dutchycore.module.annotations;
+package nl.thedutchmc.dutchycore.annotations;
 
 import java.lang.annotation.Documented;
 
