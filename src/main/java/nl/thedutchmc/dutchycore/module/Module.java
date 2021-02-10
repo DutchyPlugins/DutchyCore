@@ -1,18 +1,30 @@
 package nl.thedutchmc.dutchycore.module;
 
+import java.io.File;
+
 import nl.thedutchmc.dutchycore.annotations.Nullable;
 
 public class Module {
 
 	private PluginModule module;
 	private String name, mainClass, version, author, infoUrl;
+	private File moduleFile;
 	
-	public Module(String name, String mainClass, String version, String author, String infoUrl ) {
+	public Module(String name, String mainClass, String version, String author, String infoUrl, File moduleFile) {
 		this.name = name;
 		this.mainClass = mainClass;
 		this.version = version;
 		this.author = author;
 		this.infoUrl = infoUrl;
+		this.moduleFile = moduleFile;
+	}
+	
+	/**
+	 * Get the file the module lives in
+	 * @return Returns the File the module lives in
+	 */
+	public File getModuleFile() {
+		return this.moduleFile;
 	}
 	
 	/**

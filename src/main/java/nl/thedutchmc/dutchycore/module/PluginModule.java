@@ -1,14 +1,17 @@
 package nl.thedutchmc.dutchycore.module;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.permissions.PermissionDefault;
 import nl.thedutchmc.dutchycore.DutchyCore;
+import nl.thedutchmc.dutchycore.annotations.EventHandler;
 import nl.thedutchmc.dutchycore.annotations.Nullable;
 import nl.thedutchmc.dutchycore.module.commands.ModuleCommand;
 import nl.thedutchmc.dutchycore.module.commands.ModuleTabCompleter;
@@ -58,34 +61,63 @@ public abstract class PluginModule {
 	}
 	
 	/**
-	 * Throw (trigger) a ModuleEvent
-	 * @param moduleEvent An instance of the ModuleEvent to trigger
+	 * Throw a ModuleEvent
+	 * @param <T> The type of the ModuleEvent to be thrown
+	 * @param moduleEvent Instance of the ModuleEvent
 	 */
-	public void throwModuleEvent(ModuleEvent moduleEvent) {
+	public <T extends ModuleEvent> void throwModuleEvent(T moduleEvent) {
+		
+		//Get all methods which handle events
+		HashMap<ModuleEventListener, Method> handlers = new HashMap<>();
+		for(ModuleEventListener listener : DutchyCore.getModuleLoader().moduleEventListeners) {
+			Class<?> clazz = listener.getClass();
+			
+			for(Method m : getMethodsAnnotatedWith(clazz, EventHandler.class)) {
+				if(doesMethodHaveParameter(m, moduleEvent.getClass())) {
+					handlers.put(listener, m);
+				}
+			}
+		}
 		
 		//Get all listeners for this ModuleEvent
-		List<ModuleEventListener> listeners = DutchyCore.getModuleLoader().moduleEventListeners.get(moduleEvent.getClass());
+		//List<ModuleEventListener> listeners = DutchyCore.getModuleLoader().moduleEventListeners.get(moduleEvent.getClass());
 		
 		//Iterate over the event listeners and call the onEvent method
-		for(ModuleEventListener listener : listeners) {
-			listener.onEvent(moduleEvent);
+		handlers.forEach((k, v) -> {
+			try {
+				v.invoke(k, moduleEvent);
+			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+				e.printStackTrace();
+			}
+		});
+	}
+	
+	private boolean doesMethodHaveParameter(Method method, Class<?> parameterType) {
+		for(Class<?> clazz : method.getParameterTypes()) {
+			if(clazz.equals(parameterType)) return true;
 		}
+		
+		return false;
+	}
+	
+	private List<Method> getMethodsAnnotatedWith(Class<?> classToSearch, Class<? extends Annotation> annotation) {
+		List<Method> methods = new ArrayList<>();
+		
+		for(Method m : classToSearch.getDeclaredMethods()) {
+			if(m.isAnnotationPresent(annotation)) {
+				methods.add(m);
+			}
+		}
+		
+		return methods;
 	}
 	
 	/**
 	 * Register a ModuleEventListener
 	 * @param eventListener An instance of a ModuleEventListener that wants to receive events
-	 * @param eventClass The ModuleEvent class that the ModuleEventListener wants to receive
 	 */
-	public void registerModuleEventListener(ModuleEventListener eventListener, Class<? extends ModuleEvent> eventClass) {
-		List<ModuleEventListener> listeners = DutchyCore.getModuleLoader().moduleEventListeners.get(eventClass);
-		if(listeners == null) {
-			listeners = new ArrayList<>();
-		}
-		
-		listeners.add(eventListener);
-		
-		DutchyCore.getModuleLoader().moduleEventListeners.put(eventClass, listeners);
+	public void registerModuleEventListener(ModuleEventListener eventListener) {
+		DutchyCore.getModuleLoader().moduleEventListeners.add(eventListener);
 	}
 	
 	/**

@@ -24,14 +24,13 @@ import org.yaml.snakeyaml.Yaml;
 import nl.thedutchmc.dutchycore.DutchyCore;
 import nl.thedutchmc.dutchycore.Pair;
 import nl.thedutchmc.dutchycore.annotations.Nullable;
-import nl.thedutchmc.dutchycore.module.events.ModuleEvent;
 import nl.thedutchmc.dutchycore.module.events.ModuleEventListener;
 import nl.thedutchmc.dutchycore.module.exceptions.InvalidModuleException;
 
 public class ModuleLoader {
 	
-	protected HashMap<PluginModule, Module> loadedModules = new HashMap<>();
-	protected HashMap<Class<? extends ModuleEvent>, List<ModuleEventListener>> moduleEventListeners = new HashMap<>();
+	protected HashMap<PluginModule, Module> loadedModules = new HashMap<>();	
+	protected List<ModuleEventListener> moduleEventListeners = new ArrayList<>(); 
 	
 	private ModuleClassLoader moduleClassLoader;
 	
@@ -99,6 +98,15 @@ public class ModuleLoader {
 	}
 	
 	/**
+	 * Get the URLClassLoader the modules are loaded with
+	 * @return Returns URLClassloader, or null when it has not yet been created (only happens early in the loading process)
+	 */
+	@Nullable
+	public URLClassLoader getClassLoader() {
+		return this.moduleClassLoader;
+	}
+	
+	/**
 	 * Get a Module
 	 * @param pluginModule The PluginModule of the Module
 	 * @return Returns the Module associated with the provided PluginModule. Null if not found
@@ -163,7 +171,8 @@ public class ModuleLoader {
 				mainClassName,
 				version,
 				author,
-				infoUrl);
+				infoUrl,
+				file);
 	}
 	
 	public class ModuleClassLoader extends URLClassLoader {

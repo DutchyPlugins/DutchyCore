@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 import nl.thedutchmc.dutchycore.DutchyCore;
 
@@ -34,6 +35,15 @@ public class FileUtils {
 		} catch (IOException e) {
 			DutchyCore.logWarn(String.format("An IOException was thrown whilst trying to save %s.", name));
 			DutchyCore.logWarn(Utils.getStackTrace(e));
+		}
+	}
+	
+	public static void saveStream(InputStream stream, File target) {
+		Path targetPath = Paths.get(target.toURI());
+		try {
+			Files.copy(stream, targetPath, StandardCopyOption.REPLACE_EXISTING);
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 }

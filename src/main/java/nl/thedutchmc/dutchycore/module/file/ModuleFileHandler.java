@@ -1,7 +1,6 @@
 package nl.thedutchmc.dutchycore.module.file;
 
 import java.io.File;
-
 import nl.thedutchmc.dutchycore.DutchyCore;
 import nl.thedutchmc.dutchycore.module.Module;
 import nl.thedutchmc.dutchycore.module.PluginModule;
@@ -39,6 +38,7 @@ public class ModuleFileHandler {
 			this.moduleConfiguration = new ModuleConfiguration(module, this.plugin);
 		}
 		
+		this.moduleConfiguration.read();
 		return this.moduleConfiguration;
 	}
 	
@@ -51,6 +51,15 @@ public class ModuleFileHandler {
 			this.moduleStorage = new ModuleStorage(module, plugin);
 		}
 		
+		this.moduleStorage.read();
 		return this.moduleStorage;
+	}
+	
+	public File getModuleConfigurationFile() {
+		return new File(plugin.getDataFolder() + File.separator + "moduleconfig", module.getName() + ".yml");
+	}
+	
+	public File getModuleStorageFile() {
+		return new File(plugin.getDataFolder() + File.separator + "modulestorage", module.getName() + ".yml");
 	}
 }
