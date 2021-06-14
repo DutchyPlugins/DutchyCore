@@ -1,5 +1,5 @@
 name: DutchyCore
-main: nl.thedutchmc.dutchycore.DutchyCore
+main: dev.array21.dutchycore.DutchyCore
 version: @version@
 author: TheDutchMC
 api-version: 1.16

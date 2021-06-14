@@ -3,7 +3,8 @@ import org.apache.tools.ant.filters.ReplaceTokens
 plugins {
     id 'java'
     id 'eclipse'
-    id 'maven-publish'      
+    id 'maven-publish'
+	id 'signing'
 }
 
 sourceSets {
@@ -14,23 +15,18 @@ sourceSets {
     }
 }
 
-version = '0.0.47'
-group = 'nl.thedutchmc'
-
-java {
-    withSourcesJar()
-    withJavadocJar()
-}
+version = '0.1.0'
+group = 'dev.array21'
 
 allprojects {
     repositories {
     	mavenCentral()
         maven { url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
-   	 	maven{ url "https://oss.sonatype.org/content/repositories/snapshots" }
+   	 	maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
     }
 
-    sourceCompatibility = 1.11
-    targetCompatibility = 1.11
+    sourceCompatibility = 1.16
+    targetCompatibility = 1.16
 
     processResources {
         from(sourceSets.main.resources.srcDirs) {
@@ -40,7 +36,7 @@ allprojects {
 }
 
 dependencies {
-    compileOnly 'org.spigotmc:spigot-api:1.16.5-R0.1-SNAPSHOT'
+    compileOnly 'org.spigotmc:spigot-api:1.17-R0.1-SNAPSHOT'
 }
 
 task ghActions(type: Jar) {
@@ -54,25 +50,82 @@ task ghActions(type: Jar) {
 	destinationDirectory = file("$rootDir/actions")
 }
 
+task testJar(type: Jar) {
+	description 'Build a test Jar'
+	archiveClassifier = 'DEV'
+	from sourceSets.main.output
+	destinationDirectory = file("$rootDir/server/plugins")
+}
+
+javadoc.options.addStringOption('Xdoclint:none', '-quiet')
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+task sourcesJar(type: Jar) {
+	duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
 publishing {
-	publications {
-		mavenJava(MavenPublication) {
-			artifactId = 'dutchycore'
-			from components.java
-			
-			pom {
-				name = 'DutchyCore'
-				description = 'Core plugin for all Dutchy plugin modules'
-				url = 'https://thedutchmc.nl'
-				
-				developers {
-					developer {
-						id = 'thedutchmc'
-						name = 'Tobias de Bruijn'
-						email = 't.debruijn@thedutchmc.nl'
-					}	
-				}
-			}	
+	repositories {
+		maven {
+			name = "ossrh"
+			url = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+			credentials {
+				username = findProperty('ossrhUsername')
+				password = findProperty('ossrhPassword')
+			}
 		}
 	}
+
+	publications {
+    	mavenJava(MavenPublication) {
+      		from components.java
+      		artifact sourcesJar
+      		artifact javadocJar
+      		
+			pom {
+		    	name = 'DutchyCore'
+		    	artifactId = 'dutchycore'
+		    	packaging = 'jar'
+		    	description = 'DutchyCore Plugin Library'
+		    	url = 'https://github.com/DutchyPlugins/DutchyCore'
+			
+				scm {
+					connection = 'scm:git:git://github.com/DutchyPlugins/DutchyCore.git'
+					developerConnection = 'scm:git:ssh://github.com/DutchyPlugins/DutchyCore.git'
+					url = 'https://github.com/DutchyPlugins/DutchyCore'
+				}
+		
+		    	licenses {
+		      		license {
+		        		name = 'GPL-v23'
+		        		url = 'https://github.com/DutchyPlugins/DutchyCore/blob/master/LICENSE'
+		      		}
+	    		}
+		
+		    	developers {
+		      		developer {
+		        		id = 'tobiasdebruijn'
+		        		name = 'Tobias de Bruijn'
+		        		email = 't.debruijn@array21.dev'
+		      		}
+		    	}
+		    }
+    	}
+	}
+}
+
+signing {
+	if(!System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
+	    sign publishing.publications.mavenJava
+	}
+}
+
+processResources  {
+	duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
